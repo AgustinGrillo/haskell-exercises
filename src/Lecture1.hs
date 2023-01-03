@@ -117,7 +117,15 @@ start position can be considered as zero (e.g. substring from the
 first character) and negative end position should result in an empty
 string.
 -}
-subString start end str = error "TODO"
+subString :: Int -> Int -> String -> String
+subString start end str 
+        | end < 0 || end < start = ""
+        | start < 0 = subString 0 end str 
+        | otherwise = cleanSubString start end str
+        where
+            cleanSubString :: Int -> Int -> String -> String
+            cleanSubString start end str = drop start (take (end+1) str)
+            
 
 {- | Write a function that takes a String — space separated numbers,
 and finds a sum of the numbers inside this string.
@@ -127,7 +135,12 @@ and finds a sum of the numbers inside this string.
 
 The string contains only spaces and/or numbers.
 -}
-strSum str = error "TODO"
+strSum :: String -> Int
+strSum str = numsum
+    where
+        numstrings = words str
+        numints = map (\x -> read x::Int) numstrings 
+        numsum = sum numints
 
 {- | Write a function that takes a number and a list of numbers and
 returns a string, saying how many elements of the list are strictly
@@ -142,4 +155,23 @@ and lower than 6 elements (4, 5, 6, 7, 8 and 9).
 
 🕯 HINT: Use recursion to implement this function.
 -}
-lowerAndGreater n list = error "TODO"
+lowerAndGreater :: Int -> [Int] -> String
+lowerAndGreater n list = show n ++ " is greater than " ++ show lows ++ " elements and lower than " ++ show highs ++ " elements"
+    where 
+        getLows :: Int -> Int -> [Int] -> Int
+        getLows l n list
+            | null list = l
+            | n > (head list) = getLows (l+1) n (tail list)
+            | otherwise = getLows l n (tail list)
+
+        getHighs :: Int -> Int -> [Int] -> Int
+        getHighs l n list
+            | null list = l
+            | n < (head list) = getHighs (l+1) n (tail list)
+            | otherwise = getHighs l n (tail list)
+
+        lows = getLows 0 n list
+        highs = getHighs 0 n list
+         
+            
+
