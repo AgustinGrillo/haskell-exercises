@@ -68,7 +68,7 @@ sumOfSquares x y = x^2 + y^2
 
 -}
 lastDigit :: Int -> Int
-lastDigit n = mod (abs (n)) 10
+lastDigit n = mod (abs n) 10
 
 {- | Write a function that takes three numbers and returns the
 difference between the biggest number and the smallest one.
@@ -83,9 +83,9 @@ Try to use local variables (either let-in or where) to implement this
 function.
 -}
 minmax :: Int -> Int -> Int -> Int
-minmax x y z = max - min
+minmax x y z = max_val - min_val
     where 
-        max = 
+        max_val = 
             if x > y 
             then if x > z 
                  then x
@@ -93,7 +93,7 @@ minmax x y z = max - min
             else if y > z
                  then y
                  else z
-        min = 
+        min_val = 
             if x < y 
             then if x < z 
                  then x
@@ -124,7 +124,7 @@ subString start end str
         | otherwise = cleanSubString start end str
         where
             cleanSubString :: Int -> Int -> String -> String
-            cleanSubString start end str = drop start (take (end+1) str)
+            cleanSubString s e st = drop s (take (e+1) st)
             
 
 {- | Write a function that takes a String — space separated numbers,
@@ -156,22 +156,22 @@ and lower than 6 elements (4, 5, 6, 7, 8 and 9).
 🕯 HINT: Use recursion to implement this function.
 -}
 lowerAndGreater :: Int -> [Int] -> String
-lowerAndGreater n list = show n ++ " is greater than " ++ show lows ++ " elements and lower than " ++ show highs ++ " elements"
+lowerAndGreater num list = show num ++ " is greater than " ++ show lows ++ " elements and lower than " ++ show highs ++ " elements"
     where 
         getLows :: Int -> Int -> [Int] -> Int
-        getLows l n list
-            | null list = l
-            | n > (head list) = getLows (l+1) n (tail list)
-            | otherwise = getLows l n (tail list)
+        getLows l n ls
+            | null ls = l
+            | n > (head ls) = getLows (l+1) n (tail ls)
+            | otherwise = getLows l n (tail ls)
 
         getHighs :: Int -> Int -> [Int] -> Int
-        getHighs l n list
-            | null list = l
-            | n < (head list) = getHighs (l+1) n (tail list)
-            | otherwise = getHighs l n (tail list)
+        getHighs h n ls
+            | null ls = h
+            | n < (head ls) = getHighs (h+1) n (tail ls)
+            | otherwise = getHighs h n (tail ls)
 
-        lows = getLows 0 n list
-        highs = getHighs 0 n list
+        lows = getLows 0 num list
+        highs = getHighs 0 num list
          
             
 
