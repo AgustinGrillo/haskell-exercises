@@ -41,6 +41,10 @@ module Lecture2
     ) where
 
 -- VVV If you need to import libraries, do it after this line ... VVV
+import Data.Char 
+import Data.List
+import Data.Either
+import Data.Maybe
 
 -- ^^^ and before this line. Otherwise the test suite might fail  ^^^
 
@@ -113,7 +117,10 @@ spaces.
 
 🕯 HINT: look into Data.Char and Prelude modules for functions you may use.
 -}
-dropSpaces = error "TODO"
+dropSpaces :: String -> String
+-- dropSpaces = filter (not.isSpace)
+-- dropSpaces str = takeWhile (not.isSpace) (dropWhile (isSpace) str)
+dropSpaces = (takeWhile (not.isSpace)).(dropWhile isSpace)
 
 {- |
 
@@ -197,7 +204,12 @@ False
 True
 -}
 isIncreasing :: [Int] -> Bool
-isIncreasing = error "TODO"
+isIncreasing [] = True
+isIncreasing [_] = True
+isIncreasing (a:b:xs) 
+    | b <= a = False
+    | a < b = isIncreasing (b:xs)
+
 
 {- | Implement a function that takes two lists, sorted in the
 increasing order, and merges them into new list, also sorted in the
@@ -210,7 +222,12 @@ verify that.
 [1,2,3,4,7]
 -}
 merge :: [Int] -> [Int] -> [Int]
-merge = error "TODO"
+merge [] [] = []
+merge a [] = a
+merge [] b = b
+merge (a:as) (b:bs) 
+    | a <= b    = a : merge as (b:bs)
+    | otherwise = b : merge (a:as) bs
 
 {- | Implement the "Merge Sort" algorithm in Haskell. The @mergeSort@
 function takes a list of numbers and returns a new list containing the
@@ -227,7 +244,13 @@ The algorithm of merge sort is the following:
 [1,2,3]
 -}
 mergeSort :: [Int] -> [Int]
-mergeSort = error "TODO"
+mergeSort [] = []
+mergeSort [a] = [a]
+mergeSort x 
+    | isIncreasing x = x
+    | otherwise = merge (sort (fst splits)) (sort (snd splits))
+    where 
+        splits = splitAt (((length x) + 1) `div` 2) x
 
 
 {- | Haskell is famous for being a superb language for implementing
@@ -280,7 +303,16 @@ data EvalError
 It returns either a successful evaluation result or an error.
 -}
 eval :: Variables -> Expr -> Either EvalError Int
-eval = error "TODO"
+eval _ (Lit a) = Right a
+eval vars (Var v) = case lookup v vars of 
+    Just n -> Right n
+    Nothing -> Left (VariableNotFound "x")
+eval vars (Add a b)
+    | isLeft left_eval || isLeft right_eval = Left (VariableNotFound "x")
+    | otherwise = Right ((fromRight 0 left_eval) + (fromRight 0 right_eval))
+    where
+        left_eval = eval vars a
+        right_eval = eval vars b
 
 {- | Compilers also perform optimizations! One of the most common
 optimizations is "Constant Folding". It performs arithmetic operations
@@ -303,5 +335,38 @@ x + 45 + y
 Write a function that takes and expression and performs "Constant
 Folding" optimization on the given expression.
 -}
+-- TODO: Revisit
 constantFolding :: Expr -> Expr
-constantFolding = error "TODO"
+constantFolding (Var v) = (Var v)
+constantFolding (Lit l) = (Lit l)
+constantFolding (Add (Lit a) (Lit b)) = Lit (a+b)
+constantFolding (Add (Var a) (Var b)) = Add (Var a) (Var b)
+constantFolding (Add (Lit a) (Var b)) = Add (Lit a) (Var b)
+constantFolding (Add (Var a) (Lit b)) = Add (Var a) (Lit b)
+constantFolding (Add (Var a) b) = auxConstFold (Lit 0) (Var a) b
+constantFolding (Add (Lit a) b) = auxConstFold (Lit a) (Lit 0) b
+
+auxConstFold :: Expr -> Expr -> Expr -> Expr
+-- auxConstFold -> constSum -> nonConst -> rawExp -> foldedExp 
+auxConstFold (Lit 0) nonConst (Lit rawExpA)                      = Add (Lit (rawExpA)) nonConst
+auxConstFold (Lit 0) nonConst (Var rawExpA)                      = (Add (Var rawExpA) nonConst)
+auxConstFold (Lit 0) (Lit 0) (Add (Lit rawExpA) (Lit rawExpB))  = Lit (rawExpA + rawExpB)
+auxConstFold (Lit 0) (Lit 0) (Add (Var rawExpA) (Var rawExpB))  = (Add (Var rawExpA) (Var rawExpB))
+auxConstFold (Lit 0) (Lit 0) (Add (Lit rawExpA)  rawExpB) = auxConstFold (Lit (rawExpA)) (Lit 0) rawExpB
+auxConstFold (Lit 0) (Lit 0) (Add (Var rawExpA)  rawExpB) = auxConstFold (Lit 0) (Var rawExpA) rawExpB
+auxConstFold (Lit 0) nonConst (Add (Lit rawExpA) (Lit rawExpB))  = Add (Lit (rawExpA + rawExpB)) nonConst
+auxConstFold (Lit 0) nonConst (Add (Var rawExpA) (Var rawExpB))  = (Add (Add (Var rawExpA) (Var rawExpB)) nonConst)
+auxConstFold (Lit 0) nonConst (Add (Lit rawExpA)  rawExpB) = auxConstFold (Lit (rawExpA)) nonConst rawExpB
+auxConstFold (Lit 0) nonConst (Add (Var rawExpA)  rawExpB) = auxConstFold (Lit 0) (Add (Var rawExpA) nonConst) rawExpB
+     
+
+auxConstFold (Lit constSum) nonConst (Lit rawExpA)                      = Add (Lit (constSum + rawExpA)) nonConst
+auxConstFold (Lit constSum) nonConst (Var rawExpA)                      = Add (Lit constSum) (Add (Var rawExpA) nonConst)
+auxConstFold (Lit constSum) (Lit 0) (Add (Lit rawExpA) (Lit rawExpB))  = Lit (constSum + rawExpA + rawExpB)
+auxConstFold (Lit constSum) (Lit 0) (Add (Var rawExpA) (Var rawExpB))  = Add (Lit constSum) (Add (Var rawExpA) (Var rawExpB))
+auxConstFold (Lit constSum) (Lit 0) (Add (Lit rawExpA)  rawExpB) = auxConstFold (Lit (constSum + rawExpA)) (Lit 0) rawExpB
+auxConstFold (Lit constSum) (Lit 0) (Add (Var rawExpA)  rawExpB) = auxConstFold (Lit constSum) (Var rawExpA) rawExpB
+auxConstFold (Lit constSum) nonConst (Add (Lit rawExpA) (Lit rawExpB))  = Add (Lit (constSum + rawExpA + rawExpB)) nonConst
+auxConstFold (Lit constSum) nonConst (Add (Var rawExpA) (Var rawExpB))  = Add (Lit constSum) (Add (Add (Var rawExpA) (Var rawExpB)) nonConst)
+auxConstFold (Lit constSum) nonConst (Add (Lit rawExpA)  rawExpB) = auxConstFold (Lit (constSum + rawExpA)) nonConst rawExpB
+auxConstFold (Lit constSum) nonConst (Add (Var rawExpA)  rawExpB) = auxConstFold (Lit constSum) (Add (Var rawExpA) nonConst) rawExpB
