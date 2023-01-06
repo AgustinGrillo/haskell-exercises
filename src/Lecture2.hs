@@ -336,6 +336,9 @@ Write a function that takes and expression and performs "Constant
 Folding" optimization on the given expression.
 -}
 -- TODO: Revisit
+-- TODO: Remove excessive pattern matching 
+-- NOTE: Try working with integers and forget about custom Expr data type.
+-- NOTE: Check -> https://github.com/artemrakov/exercises/blob/main/src/Lecture2.hs
 constantFolding :: Expr -> Expr
 constantFolding (Var v) = (Var v)
 constantFolding (Lit l) = (Lit l)
