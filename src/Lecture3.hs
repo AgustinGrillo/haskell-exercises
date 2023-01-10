@@ -52,7 +52,7 @@ data Weekday
     | Friday
     | Saturday
     | Sunday
-    deriving (Show, Eq)
+    deriving (Show, Eq, Ord, Enum, Bounded)
 
 {- | Write a function that will display only the first three letters
 of a weekday.
@@ -60,7 +60,8 @@ of a weekday.
 >>> toShortString Monday
 "Mon"
 -}
-toShortString = error "TODO"
+toShortString :: Weekday -> String
+toShortString = take 3  . show 
 
 {- | Write a function that returns next day of the week, following the
 given day.
@@ -82,7 +83,17 @@ Tuesday
   would work for **any** enumeration type in Haskell (e.g. 'Bool',
   'Ordering') and not just 'Weekday'?
 -}
-next = error "TODO"
+-- Solution Bonus challenge 1
+-- next :: Weekday -> Weekday 
+-- next e 
+--     | e == (maxBound :: Weekday) = (minBound :: Weekday)
+--     | otherwise = succ e
+
+-- Solution Bonus challenge 2
+next :: (Enum a, Bounded a, Eq a) => a -> a
+next e 
+    | e == maxBound = minBound
+    | otherwise = succ e
 
 {- | Implement a function that calculates number of days from the first
 weekday to the second.
@@ -92,7 +103,13 @@ weekday to the second.
 >>> daysTo Friday Wednesday
 5
 -}
-daysTo = error "TODO"
+daysTo :: Weekday -> Weekday -> Int
+daysTo wd1 wd2 
+    | n2 < n1 = fromEnum (maxBound :: Weekday) + 1 - n1 + n2
+    | otherwise = n2 - n1
+    where
+        n1 = fromEnum wd1
+        n2 = fromEnum wd2
 
 {-
 
@@ -108,9 +125,11 @@ newtype Gold = Gold
 
 -- | Addition of gold coins.
 instance Semigroup Gold where
+    a <> b = Gold ((unGold a) + (unGold b))
 
 
 instance Monoid Gold where
+    mempty = Gold 0
 
 
 {- | A reward for completing a difficult quest says how much gold
@@ -125,9 +144,13 @@ data Reward = Reward
     } deriving (Show, Eq)
 
 instance Semigroup Reward where
+    a <> b = Reward {rewardGold = (rewardGold a <> rewardGold b),
+                     rewardSpecial = rewardSpecial a || rewardSpecial b}
 
 
 instance Monoid Reward where
+    mempty = Reward {rewardGold = mempty :: Gold,
+                     rewardSpecial = False}
 
 
 {- | 'List1' is a list that contains at least one element.
@@ -137,9 +160,11 @@ data List1 a = List1 a [a]
 
 -- | This should be list append.
 instance Semigroup (List1 a) where
+    List1 a1 a2 <> List1 b1 b2 = List1 a1 (a2 <> [b1] <> b2)
 
 
 {- | Does 'List1' have the 'Monoid' instance? If no then why?
+ - NO, it always has an unknown value.
 
 instance Monoid (List1 a) where
 -}
