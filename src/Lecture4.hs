@@ -93,6 +93,7 @@ module Lecture4
 
       -- * Internal functions
     , parseRow
+    , splitByChar
     , rowToStats
     , combineRows
     , displayStats
@@ -135,7 +136,32 @@ errors. We will simply return an optional result here.
 -}
 
 parseRow :: String -> Maybe Row
-parseRow = error "TODO"
+parseRow = parseRowFromSplitted.splitByChar ','
+    where 
+        parseRowFromSplitted :: [String] -> Maybe Row
+        parseRowFromSplitted ["", trade, cost] = Nothing
+        parseRowFromSplitted [prod, trade, cost] = case readMaybe trade :: Maybe TradeType of
+                                                   Nothing -> Nothing
+                                                   Just t -> case readMaybe cost :: Maybe Int of
+                                                             Nothing -> Nothing
+                                                             Just c -> if c <0 
+                                                                       then Nothing
+                                                                       else Just Row { rowProduct=prod, rowTradeType=t, rowCost=c }
+        parseRowFromSplitted _ = Nothing
+
+-- splitStringByComas :: String -> String -> [String]
+-- splitStringByComas s [] = [s]
+-- splitStringByComas s (',':xs) = [s] ++ splitStringByComas "" xs
+-- splitStringByComas s (x:xs) = splitStringByComas (s ++ [x]) xs
+
+splitByChar :: Char -> String -> [String]
+splitByChar c s = splitHelper "" s
+    where
+    splitHelper :: String -> String -> [String]
+    splitHelper s [] = [s]
+    splitHelper s (x:xs) 
+        | x == c    = [s] ++ splitHelper "" xs
+        | otherwise = splitHelper (s ++ [x]) xs
 
 {-
 We have almost all we need to calculate final stats in a simple and
@@ -156,7 +182,11 @@ string.
 
 If both strings have the same length, return the first one.
 -}
+-- NOTE: Why I can't access MaxLen field using "unMaxLen"?
 instance Semigroup MaxLen where
+    MaxLen a <> MaxLen b 
+        | (length a) >= (length b) = MaxLen a
+        | otherwise = MaxLen b
 
 
 {-
@@ -184,6 +214,18 @@ instance for the 'Stats' type itself.
 -}
 
 instance Semigroup Stats where
+    a <> b = Stats {
+                      statsTotalPositions  = statsTotalPositions a <> statsTotalPositions b 
+                    , statsTotalSum        = statsTotalSum a <> statsTotalSum b 
+                    , statsAbsoluteMax     = statsAbsoluteMax a <> statsAbsoluteMax b 
+                    , statsAbsoluteMin     = statsAbsoluteMin a <> statsAbsoluteMin b 
+                    , statsSellMax         = statsSellMax a <> statsSellMax b 
+                    , statsSellMin         = statsSellMin a <> statsSellMin b 
+                    , statsBuyMax          = statsBuyMax a <> statsBuyMax b 
+                    , statsBuyMin          = statsBuyMin a <> statsBuyMin b 
+                    , statsLongest         = statsLongest a <> statsLongest b 
+                    }
+
 
 
 {-
@@ -200,7 +242,16 @@ row in the file.
 -}
 
 rowToStats :: Row -> Stats
-rowToStats = error "TODO"
+rowToStats (Row prod trade cost) = Stats { statsTotalPositions = Sum 1
+                                         , statsTotalSum       = if trade==Sell then Sum cost else Sum (-cost)
+                                         , statsAbsoluteMax    = Max cost
+                                         , statsAbsoluteMin    = Min cost
+                                         , statsSellMax        = if trade==Sell then Just (Max cost) else Nothing
+                                         , statsSellMin        = if trade==Sell then Just (Min cost) else Nothing
+                                         , statsBuyMax         = if trade==Buy  then Just (Max cost) else Nothing
+                                         , statsBuyMin         = if trade==Buy  then Just (Min cost) else Nothing
+                                         , statsLongest        = MaxLen prod
+                                         } 
 
 {-
 Now, after we learned to convert a single row, we can convert a list of rows!
@@ -226,7 +277,8 @@ implement the next task.
 -}
 
 combineRows :: NonEmpty Row -> Stats
-combineRows = error "TODO"
+combineRows (x :| []) = rowToStats x 
+combineRows (x1 :| x2 : xs) = rowToStats x1 <> combineRows (x2 :| xs)
 
 {-
 After we've calculated stats for all rows, we can then pretty-print
@@ -237,7 +289,39 @@ you can return string "no value".
 -}
 
 displayStats :: Stats -> String
-displayStats = error "TODO"
+displayStats Stats {  statsTotalPositions = Sum tps
+                    , statsTotalSum       = Sum tsum
+                    , statsAbsoluteMax    = Max mx
+                    , statsAbsoluteMin    = Min mn
+                    , statsSellMax        = rawsmx
+                    , statsSellMin        = rawsmn
+                    , statsBuyMax         = rawbmx
+                    , statsBuyMin         = rawbmn
+                    , statsLongest        = MaxLen lgst
+                    } = "Total positions        : " ++ show tps  ++ "\n" ++
+                        "Total final balance    : " ++ show tsum ++ "\n" ++        
+                        "Biggest absolute cost  : " ++ show mx   ++ "\n" ++           
+                        "Smallest absolute cost : " ++ show mn   ++ "\n" ++         
+                        "Max earning            : " ++      smx  ++ "\n" ++         
+                        "Min earning            : " ++      smn  ++ "\n" ++         
+                        "Max spending           : " ++      bmx  ++ "\n" ++         
+                        "Min spending           : " ++      bmn  ++ "\n" ++         
+                        "Longest product name   : " ++ lgst    
+                    where 
+                        smx = case rawsmx of
+                                Just (Max a) -> show a
+                                Nothing -> "no value"
+                        smn = case rawsmn of
+                                Just (Min a) -> show a
+                                Nothing -> "no value"
+                        bmx = case rawbmx of
+                                Just (Max a) -> show a
+                                Nothing -> "no value"
+                        bmn = case rawbmn of
+                                Just (Min a) -> show a
+                                Nothing -> "no value"
+                            
+
 
 {-
 Now, we definitely have all the pieces in places! We can write a
