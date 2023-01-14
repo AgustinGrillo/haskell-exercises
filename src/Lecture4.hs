@@ -101,9 +101,12 @@ module Lecture4
     , printProductStats
     ) where
 
-import Data.List.NonEmpty (NonEmpty (..))
+import Data.List.NonEmpty (NonEmpty (..), nonEmpty)
 import Data.Semigroup (Max (..), Min (..), Semigroup (..), Sum (..))
 import Text.Read (readMaybe)
+import Data.Maybe (mapMaybe)
+import System.IO
+import System.Environment
 
 {- In this exercise, instead of writing the entire program from
 scratch, you're offered to complete the missing parts.
@@ -341,7 +344,11 @@ the file doesn't have any products.
 -}
 
 calculateStats :: String -> String
-calculateStats = error "TODO"
+-- calculateStats str = case nonEmpty (mapMaybe parseRow (splitByChar '\n' str)) of
+calculateStats str = case (nonEmpty.(mapMaybe parseRow).(splitByChar '\n')) str of
+                     Nothing -> "The file does not have any products"
+                     Just x -> (displayStats . combineRows) x
+
 
 {- The only thing left is to write a function with side-effects that
 takes a path to a file, reads its content, calculates stats and prints
@@ -351,7 +358,10 @@ Use functions 'readFile' and 'putStrLn' here.
 -}
 
 printProductStats :: FilePath -> IO ()
-printProductStats = error "TODO"
+printProductStats path = do 
+                           content <- readFile path 
+                           let prettyStats = calculateStats content
+                           putStrLn prettyStats
 
 {-
 Okay, I lied. This is not the last thing. Now, we need to wrap
@@ -367,7 +377,12 @@ https://hackage.haskell.org/package/base-4.16.0.0/docs/System-Environment.html#v
 -}
 
 main :: IO ()
-main = error "TODO"
+main = do
+         args <- getArgs 
+         case args of
+            [filepath] -> printProductStats filepath
+            _ -> putStrLn "Invalid argument"
+
 
 
 {-
